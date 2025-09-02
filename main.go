@@ -16,19 +16,19 @@ import (
 
 // Constants for Claude Max 5x Plan Limits ($100/month)
 const (
-	OpusContextLimit  = 200000 // 200K context window
-	OpusDailyLimit    = 430000 // Daily token estimate for Max 5x
-	OpusWeeklyLimit   = 3000000 // Weekly token estimate for Max 5x (7 days)
-	OpusMessageLimit  = 225    // Messages per 5 hour window
-	OpusRateWindow    = 18000  // 5 hours in seconds (5 * 60 * 60)
-	SecondsInWeek     = 604800 // 7 days in seconds (7 * 24 * 60 * 60)
+	OpusContextLimit = 200000  // 200K context window
+	OpusDailyLimit   = 430000  // Daily token estimate for Max 5x
+	OpusWeeklyLimit  = 3000000 // Weekly token estimate for Max 5x (7 days)
+	OpusMessageLimit = 225     // Messages per 5 hour window
+	OpusRateWindow   = 18000   // 5 hours in seconds (5 * 60 * 60)
+	SecondsInWeek    = 604800  // 7 days in seconds (7 * 24 * 60 * 60)
 )
 
 // Claude pricing constants (per 1M tokens)
 const (
 	SonnetInputCost  = 3.00  // $3.00 per 1M input tokens
 	SonnetOutputCost = 15.00 // $15.00 per 1M output tokens
-	HaikuInputCost   = 0.25  // $0.25 per 1M input tokens  
+	HaikuInputCost   = 0.25  // $0.25 per 1M input tokens
 	HaikuOutputCost  = 1.25  // $1.25 per 1M output tokens
 	OpusInputCost    = 15.00 // $15.00 per 1M input tokens
 	OpusOutputCost   = 75.00 // $75.00 per 1M output tokens
@@ -36,11 +36,11 @@ const (
 
 // Powerline symbols
 const (
-	PowerlineRightArrow     = "\uE0B0" // 
-	PowerlineRightThinArrow = "\uE0B1" // 
-	PowerlineLeftArrow      = "\uE0B2" // 
-	PowerlineLeftThinArrow  = "\uE0B3" // 
-	GitBranch               = "\uE0A0" // 
+	PowerlineRightArrow     = "\uE0B0" //
+	PowerlineRightThinArrow = "\uE0B1" //
+	PowerlineLeftArrow      = "\uE0B2" //
+	PowerlineLeftThinArrow  = "\uE0B3" //
+	GitBranch               = "\uE0A0" //
 	GitIcon                 = "𖠰"
 	BlockIcon               = "⏱"
 	TokenIcon               = "🔤"
@@ -57,10 +57,10 @@ const (
 
 // Enhanced ANSI color codes with truecolor support
 const (
-	ColorReset   = "\033[0m"
-	ColorBold    = "\033[1m"
-	ColorDim     = "\033[2m"
-	
+	ColorReset = "\033[0m"
+	ColorBold  = "\033[1m"
+	ColorDim   = "\033[2m"
+
 	// Standard colors
 	ColorBlack   = "\033[30m"
 	ColorRed     = "\033[31m"
@@ -70,7 +70,7 @@ const (
 	ColorMagenta = "\033[35m"
 	ColorCyan    = "\033[36m"
 	ColorWhite   = "\033[37m"
-	
+
 	// Bright colors
 	ColorBrightBlack   = "\033[90m"
 	ColorBrightRed     = "\033[91m"
@@ -80,7 +80,7 @@ const (
 	ColorBrightMagenta = "\033[95m"
 	ColorBrightCyan    = "\033[96m"
 	ColorBrightWhite   = "\033[97m"
-	
+
 	// Background colors
 	BgBlack   = "\033[40m"
 	BgRed     = "\033[41m"
@@ -90,7 +90,7 @@ const (
 	BgMagenta = "\033[45m"
 	BgCyan    = "\033[46m"
 	BgWhite   = "\033[47m"
-	
+
 	// Bright background colors
 	BgBrightBlack   = "\033[100m"
 	BgBrightRed     = "\033[101m"
@@ -104,31 +104,31 @@ const (
 
 // Theme configuration
 type Theme struct {
-	Name           string
-	UserColor      string
-	UserBg         string
-	HostColor      string
-	HostBg         string
-	PathColor      string
-	PathBg         string
-	ModelColor     string
-	ModelBg        string
-	PercentColor   func(int) string
-	PercentBg      func(int) string
-	TokensColor    string
-	TokensBg       string
-	TimeColor      string
-	TimeBg         string
-	GitColor       string
-	GitBg          string
-	CostColor      string
-	CostBg         string
-	MessageColor   string
-	MessageBg      string
+	Name            string
+	UserColor       string
+	UserBg          string
+	HostColor       string
+	HostBg          string
+	PathColor       string
+	PathBg          string
+	ModelColor      string
+	ModelBg         string
+	PercentColor    func(int) string
+	PercentBg       func(int) string
+	TokensColor     string
+	TokensBg        string
+	TimeColor       string
+	TimeBg          string
+	GitColor        string
+	GitBg           string
+	CostColor       string
+	CostBg          string
+	MessageColor    string
+	MessageBg       string
 	EfficiencyColor string
 	EfficiencyBg    string
-	LatencyColor   string
-	LatencyBg      string
+	LatencyColor    string
+	LatencyBg       string
 	CompactionColor func(int) string
 	CompactionBg    func(int) string
 	WeeklyColor     func(int) string
@@ -140,151 +140,199 @@ type Theme struct {
 // Predefined themes
 var themes = map[string]Theme{
 	"powerline": {
-		Name:           "Powerline",
-		UserColor:      ColorBrightWhite,
-		UserBg:         BgBlue,
-		HostColor:      ColorBrightWhite,
-		HostBg:         BgBlue,
-		PathColor:      ColorBlack,
-		PathBg:         BgBrightCyan,
-		ModelColor:     ColorBrightWhite,
-		ModelBg:        BgMagenta,
-		PercentColor:   func(p int) string {
-			if p < 10 { return ColorBrightWhite }
-			if p < 30 { return ColorBlack }
+		Name:       "Powerline",
+		UserColor:  ColorBrightWhite,
+		UserBg:     BgBlue,
+		HostColor:  ColorBrightWhite,
+		HostBg:     BgBlue,
+		PathColor:  ColorBlack,
+		PathBg:     BgBrightCyan,
+		ModelColor: ColorBrightWhite,
+		ModelBg:    BgMagenta,
+		PercentColor: func(p int) string {
+			if p < 10 {
+				return ColorBrightWhite
+			}
+			if p < 30 {
+				return ColorBlack
+			}
 			return ColorBlack
 		},
 		PercentBg: func(p int) string {
-			if p < 10 { return BgRed }
-			if p < 30 { return BgYellow }
+			if p < 10 {
+				return BgRed
+			}
+			if p < 30 {
+				return BgYellow
+			}
 			return BgGreen
 		},
-		TokensColor:    ColorBrightWhite,
-		TokensBg:       BgBrightBlack,
-		TimeColor:      ColorBrightWhite,
-		TimeBg:         BgBrightBlue,
-		GitColor:       ColorBrightWhite,
-		GitBg:          BgBrightGreen,
-		CostColor:      ColorBrightWhite,
-		CostBg:         BgRed,
-		MessageColor:   ColorBrightWhite,
-		MessageBg:      BgMagenta,
+		TokensColor:     ColorBrightWhite,
+		TokensBg:        BgBrightBlack,
+		TimeColor:       ColorBrightWhite,
+		TimeBg:          BgBrightBlue,
+		GitColor:        ColorBrightWhite,
+		GitBg:           BgBrightGreen,
+		CostColor:       ColorBrightWhite,
+		CostBg:          BgRed,
+		MessageColor:    ColorBrightWhite,
+		MessageBg:       BgMagenta,
 		EfficiencyColor: ColorBrightWhite,
-		EfficiencyBg:   BgBrightBlue,
-		LatencyColor:   ColorBrightWhite,
-		LatencyBg:      BgBrightGreen,
+		EfficiencyBg:    BgBrightBlue,
+		LatencyColor:    ColorBrightWhite,
+		LatencyBg:       BgBrightGreen,
 		CompactionColor: func(p int) string {
-			if p < 50 { return ColorBrightWhite }
-			if p < 80 { return ColorBlack }
+			if p < 50 {
+				return ColorBrightWhite
+			}
+			if p < 80 {
+				return ColorBlack
+			}
 			return ColorBrightWhite
 		},
 		CompactionBg: func(p int) string {
-			if p < 50 { return BgGreen }
-			if p < 80 { return BgYellow }
+			if p < 50 {
+				return BgGreen
+			}
+			if p < 80 {
+				return BgYellow
+			}
 			return BgRed
 		},
 		WeeklyColor: func(p int) string {
-			if p < 60 { return ColorBrightWhite }
-			if p < 85 { return ColorBlack }
+			if p < 60 {
+				return ColorBrightWhite
+			}
+			if p < 85 {
+				return ColorBlack
+			}
 			return ColorBrightWhite
 		},
 		WeeklyBg: func(p int) string {
-			if p < 60 { return BgBrightBlue }
-			if p < 85 { return BgYellow }
+			if p < 60 {
+				return BgBrightBlue
+			}
+			if p < 85 {
+				return BgYellow
+			}
 			return BgRed
 		},
 		SeparatorColor: ColorReset,
 		UsePowerline:   true,
 	},
 	"minimal": {
-		Name:           "Minimal",
-		UserColor:      ColorBrightGreen,
-		UserBg:         "",
-		HostColor:      ColorBrightGreen,
-		HostBg:         "",
-		PathColor:      ColorBrightBlue,
-		PathBg:         "",
-		ModelColor:     ColorBrightMagenta,
-		ModelBg:        "",
+		Name:       "Minimal",
+		UserColor:  ColorBrightGreen,
+		UserBg:     "",
+		HostColor:  ColorBrightGreen,
+		HostBg:     "",
+		PathColor:  ColorBrightBlue,
+		PathBg:     "",
+		ModelColor: ColorBrightMagenta,
+		ModelBg:    "",
 		PercentColor: func(p int) string {
-			if p < 10 { return ColorBrightRed }
-			if p < 30 { return ColorBrightYellow }
+			if p < 10 {
+				return ColorBrightRed
+			}
+			if p < 30 {
+				return ColorBrightYellow
+			}
 			return ColorBrightGreen
 		},
-		PercentBg:      func(p int) string { return "" },
-		TokensColor:    ColorBrightBlack,
-		TokensBg:       "",
-		TimeColor:      ColorBrightCyan,
-		TimeBg:         "",
-		GitColor:       ColorBrightYellow,
-		GitBg:          "",
-		CostColor:      ColorBrightRed,
-		CostBg:         "",
-		MessageColor:   ColorBrightMagenta,
-		MessageBg:      "",
+		PercentBg:       func(p int) string { return "" },
+		TokensColor:     ColorBrightBlack,
+		TokensBg:        "",
+		TimeColor:       ColorBrightCyan,
+		TimeBg:          "",
+		GitColor:        ColorBrightYellow,
+		GitBg:           "",
+		CostColor:       ColorBrightRed,
+		CostBg:          "",
+		MessageColor:    ColorBrightMagenta,
+		MessageBg:       "",
 		EfficiencyColor: ColorBrightBlue,
 		EfficiencyBg:    "",
-		LatencyColor:   ColorBrightGreen,
-		LatencyBg:      "",
+		LatencyColor:    ColorBrightGreen,
+		LatencyBg:       "",
 		CompactionColor: func(p int) string {
-			if p < 50 { return ColorBrightGreen }
-			if p < 80 { return ColorBrightYellow }
+			if p < 50 {
+				return ColorBrightGreen
+			}
+			if p < 80 {
+				return ColorBrightYellow
+			}
 			return ColorBrightRed
 		},
 		CompactionBg: func(p int) string { return "" },
 		WeeklyColor: func(p int) string {
-			if p < 60 { return ColorBrightBlue }
-			if p < 85 { return ColorBrightYellow }
+			if p < 60 {
+				return ColorBrightBlue
+			}
+			if p < 85 {
+				return ColorBrightYellow
+			}
 			return ColorBrightRed
 		},
-		WeeklyBg: func(p int) string { return "" },
+		WeeklyBg:       func(p int) string { return "" },
 		SeparatorColor: ColorBrightBlack,
 		UsePowerline:   false,
 	},
 	"gruvbox": {
-		Name:           "Gruvbox",
-		UserColor:      trueColor(254, 128, 25), // orange
-		UserBg:         trueColorBg(40, 40, 40), // dark gray
-		HostColor:      trueColor(184, 187, 38), // yellow-green  
-		HostBg:         trueColorBg(60, 56, 54), // gray
-		PathColor:      trueColor(131, 165, 152), // aqua
-		PathBg:         trueColorBg(80, 73, 69), // darker gray
-		ModelColor:     trueColor(211, 134, 155), // purple
-		ModelBg:        trueColorBg(102, 92, 84), // brown-gray
+		Name:       "Gruvbox",
+		UserColor:  trueColor(254, 128, 25),  // orange
+		UserBg:     trueColorBg(40, 40, 40),  // dark gray
+		HostColor:  trueColor(184, 187, 38),  // yellow-green
+		HostBg:     trueColorBg(60, 56, 54),  // gray
+		PathColor:  trueColor(131, 165, 152), // aqua
+		PathBg:     trueColorBg(80, 73, 69),  // darker gray
+		ModelColor: trueColor(211, 134, 155), // purple
+		ModelBg:    trueColorBg(102, 92, 84), // brown-gray
 		PercentColor: func(p int) string {
-			if p < 10 { return trueColor(251, 73, 52) } // red
-			if p < 30 { return trueColor(250, 189, 47) } // yellow
+			if p < 10 {
+				return trueColor(251, 73, 52)
+			} // red
+			if p < 30 {
+				return trueColor(250, 189, 47)
+			} // yellow
 			return trueColor(184, 187, 38) // green
 		},
-		PercentBg:     func(p int) string { return trueColorBg(60, 56, 54) },
-		TokensColor:   trueColor(235, 219, 178), // light
-		TokensBg:      trueColorBg(50, 48, 47), // darker
-		TimeColor:     trueColor(142, 192, 124), // bright green
-		TimeBg:        trueColorBg(40, 40, 40),
-		GitColor:      trueColor(254, 128, 25), // orange
-		GitBg:         trueColorBg(60, 56, 54),
-		CostColor:     trueColor(251, 73, 52), // red
-		CostBg:        trueColorBg(40, 40, 40),
-		MessageColor:  trueColor(211, 134, 155), // purple
-		MessageBg:     trueColorBg(60, 56, 54),
+		PercentBg:       func(p int) string { return trueColorBg(60, 56, 54) },
+		TokensColor:     trueColor(235, 219, 178), // light
+		TokensBg:        trueColorBg(50, 48, 47),  // darker
+		TimeColor:       trueColor(142, 192, 124), // bright green
+		TimeBg:          trueColorBg(40, 40, 40),
+		GitColor:        trueColor(254, 128, 25), // orange
+		GitBg:           trueColorBg(60, 56, 54),
+		CostColor:       trueColor(251, 73, 52), // red
+		CostBg:          trueColorBg(40, 40, 40),
+		MessageColor:    trueColor(211, 134, 155), // purple
+		MessageBg:       trueColorBg(60, 56, 54),
 		EfficiencyColor: trueColor(131, 165, 152), // aqua
-		EfficiencyBg:   trueColorBg(80, 73, 69),
-		LatencyColor:  trueColor(142, 192, 124), // bright green
-		LatencyBg:     trueColorBg(50, 48, 47),
+		EfficiencyBg:    trueColorBg(80, 73, 69),
+		LatencyColor:    trueColor(142, 192, 124), // bright green
+		LatencyBg:       trueColorBg(50, 48, 47),
 		CompactionColor: func(p int) string {
-			if p < 50 { return trueColor(142, 192, 124) } // bright green
-			if p < 80 { return trueColor(250, 189, 47) }  // yellow
+			if p < 50 {
+				return trueColor(142, 192, 124)
+			} // bright green
+			if p < 80 {
+				return trueColor(250, 189, 47)
+			} // yellow
 			return trueColor(251, 73, 52) // red
 		},
 		CompactionBg: func(p int) string { return trueColorBg(60, 56, 54) },
 		WeeklyColor: func(p int) string {
-			if p < 60 { return trueColor(131, 165, 152) } // aqua
-			if p < 85 { return trueColor(250, 189, 47) }  // yellow
+			if p < 60 {
+				return trueColor(131, 165, 152)
+			} // aqua
+			if p < 85 {
+				return trueColor(250, 189, 47)
+			} // yellow
 			return trueColor(251, 73, 52) // red
 		},
-		WeeklyBg: func(p int) string { return trueColorBg(60, 56, 54) },
+		WeeklyBg:       func(p int) string { return trueColorBg(60, 56, 54) },
 		SeparatorColor: trueColor(80, 73, 69),
-		UsePowerline:  true,
+		UsePowerline:   true,
 	},
 }
 
@@ -358,9 +406,9 @@ type CalculatedUsage struct {
 
 // LatencyData represents request latency tracking
 type LatencyData struct {
-	AverageMs    float64
+	AverageMs     float64
 	LastRequestMs float64
-	RequestCount int
+	RequestCount  int
 }
 
 // Widget represents a status line widget
@@ -373,8 +421,8 @@ type Widget struct {
 
 // StatusLine holds the complete status line configuration
 type StatusLine struct {
-	Theme   Theme
-	Widgets []Widget
+	Theme     Theme
+	Widgets   []Widget
 	StartTime time.Time
 }
 
@@ -398,7 +446,7 @@ func main() {
 	if themeName == "" {
 		themeName = "powerline"
 	}
-	
+
 	theme, exists := themes[themeName]
 	if !exists {
 		theme = themes["powerline"]
@@ -412,7 +460,7 @@ func main() {
 
 	// Generate enhanced status line
 	output := statusLine.generatePowerlineStatusLine(statusInput)
-	
+
 	// Output status line to stdout
 	fmt.Println(output)
 }
@@ -422,18 +470,18 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	// Collect data
 	ccusageData := getCCUsageData()
 	calculatedUsage := getCalculatedUsage()
-	
+
 	// Extract token usage from JSON input
 	inputTokens := getInputTokens(input)
 	outputTokens := getOutputTokens(input)
 	totalTokens := getTotalTokens(input)
 	contextTokens := getContextTokens(input)
 	contextChars := getContextCharacters(input)
-	
+
 	// Calculate actual token usage (prefer calculated data, then ccusage, then JSON)
 	var dailyTokensUsed int
 	var sessionInputTokens, sessionOutputTokens int
-	
+
 	if calculatedUsage.DailyTokens > 0 {
 		dailyTokensUsed = calculatedUsage.DailyTokens
 		sessionInputTokens = calculatedUsage.InputTokens
@@ -477,7 +525,7 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	// Usage percentage widget (daily)
 	usagePercent := calculateUsagePercentage(dailyTokensUsed, contextTokens, contextChars)
 	remainingPercent := 100 - usagePercent
-	s.addWidget("percent", fmt.Sprintf("%d%%", remainingPercent), 
+	s.addWidget("percent", fmt.Sprintf("%d%%", remainingPercent),
 		s.Theme.PercentColor(remainingPercent), s.Theme.PercentBg(remainingPercent))
 
 	// Weekly vs Daily comparison widget
@@ -485,13 +533,13 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	if weeklyTokensUsed > 0 || dailyTokensUsed > 0 {
 		dailyPercent := calculateDailyUsagePercentage(dailyTokensUsed)
 		weeklyPercent := calculateWeeklyUsagePercentage(weeklyTokensUsed)
-		
+
 		// Show the more restrictive limit (higher percentage)
 		if weeklyPercent > dailyPercent && weeklyPercent > 0 {
-			s.addWidget("weekly", fmt.Sprintf("%s %d%%", WeeklyIcon, weeklyPercent), 
+			s.addWidget("weekly", fmt.Sprintf("%s %d%%", WeeklyIcon, weeklyPercent),
 				s.Theme.WeeklyColor(weeklyPercent), s.Theme.WeeklyBg(weeklyPercent))
 		} else if dailyPercent > 0 {
-			s.addWidget("daily", fmt.Sprintf("%s %d%%", DailyIcon, dailyPercent), 
+			s.addWidget("daily", fmt.Sprintf("%s %d%%", DailyIcon, dailyPercent),
 				s.Theme.WeeklyColor(dailyPercent), s.Theme.WeeklyBg(dailyPercent))
 		}
 	}
@@ -499,7 +547,7 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	// Token usage widget
 	if dailyTokensUsed > 0 {
 		tokensDisplay := formatTokensAdvanced(dailyTokensUsed)
-		s.addWidget("tokens", fmt.Sprintf("%s %s", TokenIcon, tokensDisplay), 
+		s.addWidget("tokens", fmt.Sprintf("%s %s", TokenIcon, tokensDisplay),
 			s.Theme.TokensColor, s.Theme.TokensBg)
 	}
 
@@ -507,14 +555,14 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	if sessionInputTokens > 0 || sessionOutputTokens > 0 {
 		sessionCost, _ := calculateCost(input.Model.DisplayName, sessionInputTokens, sessionOutputTokens)
 		costDisplay := formatCost(sessionCost)
-		s.addWidget("cost", fmt.Sprintf("%s %s", DollarIcon, costDisplay), 
+		s.addWidget("cost", fmt.Sprintf("%s %s", DollarIcon, costDisplay),
 			s.Theme.CostColor, s.Theme.CostBg)
 	}
 
 	// Message count widget
 	messageCount := getMessageCount(ccusageData, calculatedUsage)
 	if messageCount > 0 {
-		s.addWidget("messages", fmt.Sprintf("%s %d/%d", MessageIcon, messageCount, OpusMessageLimit), 
+		s.addWidget("messages", fmt.Sprintf("%s %d/%d", MessageIcon, messageCount, OpusMessageLimit),
 			s.Theme.MessageColor, s.Theme.MessageBg)
 	}
 
@@ -522,14 +570,14 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	if contextTokens > 0 {
 		efficiency := calculateContextEfficiency(contextTokens)
 		efficiencyDisplay := formatEfficiency(efficiency)
-		s.addWidget("efficiency", fmt.Sprintf("%s %s", EfficiencyIcon, efficiencyDisplay), 
+		s.addWidget("efficiency", fmt.Sprintf("%s %s", EfficiencyIcon, efficiencyDisplay),
 			s.Theme.EfficiencyColor, s.Theme.EfficiencyBg)
 	}
 
 	// Message compaction percentage widget
 	if contextTokens > 0 {
 		compactionPercent := calculateCompactionPercentage(contextTokens)
-		s.addWidget("compaction", fmt.Sprintf("%s %d%%", CompactionIcon, compactionPercent), 
+		s.addWidget("compaction", fmt.Sprintf("%s %d%%", CompactionIcon, compactionPercent),
 			s.Theme.CompactionColor(compactionPercent), s.Theme.CompactionBg(compactionPercent))
 	}
 
@@ -538,21 +586,21 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	// Block timer widget
 	blockTime := getBlockTimerDisplay()
 	if blockTime != "" {
-		s.addWidget("timer", fmt.Sprintf("%s %s", BlockIcon, blockTime), 
+		s.addWidget("timer", fmt.Sprintf("%s %s", BlockIcon, blockTime),
 			s.Theme.TimeColor, s.Theme.TimeBg)
 	}
 
 	// Time to reset widget - show both 5hr and weekly
 	timeToReset, resetType := calculateTimeToReset()
 	weeklyTimeToReset, weeklyResetType := calculateTimeToWeeklyReset()
-	
+
 	// Show whichever reset is sooner or more relevant
 	if resetType == "5hr" && timeToReset != "0m" {
-		s.addWidget("reset", fmt.Sprintf("%s reset %s", resetType, timeToReset), 
+		s.addWidget("reset", fmt.Sprintf("%s reset %s", resetType, timeToReset),
 			s.Theme.TimeColor, s.Theme.TimeBg)
 	} else {
 		// Show weekly if 5hr window has expired or is unknown
-		s.addWidget("reset", fmt.Sprintf("%s reset %s", weeklyResetType, weeklyTimeToReset), 
+		s.addWidget("reset", fmt.Sprintf("%s reset %s", weeklyResetType, weeklyTimeToReset),
 			s.Theme.TimeColor, s.Theme.TimeBg)
 	}
 
@@ -577,7 +625,7 @@ func (s *StatusLine) renderPowerline() string {
 	}
 
 	var parts []string
-	
+
 	for i, widget := range s.Widgets {
 		// Widget content with colors
 		var segment string
@@ -613,7 +661,7 @@ func (s *StatusLine) getSeparator(current, next Widget) string {
 		// Background to background transition
 		return fmt.Sprintf("%s%s%s%s", next.BgColor, getBgToFgColor(current.BgColor), PowerlineRightArrow, ColorReset)
 	} else if current.BgColor != "" && next.BgColor == "" {
-		// Background to normal transition  
+		// Background to normal transition
 		return fmt.Sprintf("%s%s%s", getBgToFgColor(current.BgColor), PowerlineRightArrow, ColorReset)
 	} else {
 		// Normal to normal transition
@@ -637,16 +685,26 @@ func trueColorBg(r, g, b int) string {
 func getBgToFgColor(bgColor string) string {
 	// Simple mapping - in practice would need full color translation
 	switch bgColor {
-	case BgBlue: return ColorBlue
-	case BgBrightCyan: return ColorBrightCyan
-	case BgMagenta: return ColorMagenta
-	case BgBrightBlack: return ColorBrightBlack
-	case BgRed: return ColorRed
-	case BgYellow: return ColorYellow
-	case BgGreen: return ColorGreen
-	case BgBrightBlue: return ColorBrightBlue
-	case BgBrightGreen: return ColorBrightGreen
-	default: return ColorWhite
+	case BgBlue:
+		return ColorBlue
+	case BgBrightCyan:
+		return ColorBrightCyan
+	case BgMagenta:
+		return ColorMagenta
+	case BgBrightBlack:
+		return ColorBrightBlack
+	case BgRed:
+		return ColorRed
+	case BgYellow:
+		return ColorYellow
+	case BgGreen:
+		return ColorGreen
+	case BgBrightBlue:
+		return ColorBrightBlue
+	case BgBrightGreen:
+		return ColorBrightGreen
+	default:
+		return ColorWhite
 	}
 }
 
@@ -659,9 +717,9 @@ func calculateUsagePercentage(dailyTokens, contextTokens, contextChars int) int 
 		estimatedTokens := contextChars / 4
 		contextPercentage = int((estimatedTokens * 100) / OpusContextLimit)
 	}
-	
+
 	dailyPercentage := int((dailyTokens * 100) / OpusDailyLimit)
-	
+
 	if contextPercentage > dailyPercentage {
 		return contextPercentage
 	}
@@ -676,11 +734,11 @@ func getBlockTimerDisplay() string {
 	hour := now.Hour()
 	blockStart := (hour / 5) * 5
 	blockStartTime := time.Date(now.Year(), now.Month(), now.Day(), blockStart, 0, 0, 0, now.Location())
-	
+
 	elapsed := now.Sub(blockStartTime)
 	hours := int(elapsed.Hours())
 	minutes := int(elapsed.Minutes()) % 60
-	
+
 	if hours == 0 {
 		return fmt.Sprintf("%dm", minutes)
 	}
@@ -702,7 +760,7 @@ func truncatePath(path string, maxLength int) string {
 	if len(path) <= maxLength {
 		return path
 	}
-	
+
 	// Try to show end of path with ellipsis
 	if maxLength > 5 {
 		return "…" + path[len(path)-(maxLength-1):]
@@ -713,7 +771,7 @@ func truncatePath(path string, maxLength int) string {
 // calculateCost calculates session and daily costs based on model and token usage
 func calculateCost(modelName string, inputTokens, outputTokens int) (sessionCost, dailyCost float64) {
 	var inputCostPer1M, outputCostPer1M float64
-	
+
 	modelLower := strings.ToLower(modelName)
 	switch {
 	case strings.Contains(modelLower, "sonnet"):
@@ -729,10 +787,10 @@ func calculateCost(modelName string, inputTokens, outputTokens int) (sessionCost
 		inputCostPer1M = SonnetInputCost
 		outputCostPer1M = SonnetOutputCost
 	}
-	
+
 	sessionCost = (float64(inputTokens)*inputCostPer1M + float64(outputTokens)*outputCostPer1M) / 1000000
 	dailyCost = sessionCost
-	
+
 	return sessionCost, dailyCost
 }
 
@@ -758,12 +816,12 @@ func calculateContextEfficiency(contextTokens int) float64 {
 // getLatencyData retrieves request latency information
 func getLatencyData() LatencyData {
 	var latency LatencyData
-	
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return latency
 	}
-	
+
 	latencyPath := filepath.Join(homeDir, ".claude", "latency.txt")
 	if content, err := os.ReadFile(latencyPath); err == nil {
 		lines := strings.Split(strings.TrimSpace(string(content)), "\n")
@@ -779,7 +837,7 @@ func getLatencyData() LatencyData {
 			}
 		}
 	}
-	
+
 	return latency
 }
 
@@ -814,7 +872,7 @@ func calculateWeeklyUsagePercentage(weeklyTokens int) int {
 	return int((float64(weeklyTokens) / float64(OpusWeeklyLimit)) * 100)
 }
 
-// calculateDailyUsagePercentage calculates percentage of daily limit used  
+// calculateDailyUsagePercentage calculates percentage of daily limit used
 func calculateDailyUsagePercentage(dailyTokens int) int {
 	if dailyTokens == 0 {
 		return 0
@@ -840,23 +898,23 @@ func getWeeklyTokensUsed(ccusageData CCUsageData, calculatedUsage CalculatedUsag
 // calculateTimeToWeeklyReset calculates time until weekly limit resets
 func calculateTimeToWeeklyReset() (string, string) {
 	now := time.Now()
-	
+
 	// Weekly resets happen every Monday at 00:00 UTC (based on Claude's implementation)
 	// Find next Monday
 	daysUntilMonday := (7 - int(now.Weekday()) + 1) % 7
 	if daysUntilMonday == 0 {
 		daysUntilMonday = 7 // If today is Monday, next reset is next Monday
 	}
-	
+
 	nextMonday := now.AddDate(0, 0, daysUntilMonday)
 	nextMondayMidnight := time.Date(nextMonday.Year(), nextMonday.Month(), nextMonday.Day(), 0, 0, 0, 0, time.UTC)
-	
+
 	duration := nextMondayMidnight.Sub(now)
-	
+
 	days := int(duration.Hours() / 24)
 	hours := int(duration.Hours()) % 24
 	minutes := int(duration.Minutes()) % 60
-	
+
 	var timeStr string
 	if days > 0 {
 		timeStr = fmt.Sprintf("%dd %dh", days, hours)
@@ -865,7 +923,7 @@ func calculateTimeToWeeklyReset() (string, string) {
 	} else {
 		timeStr = fmt.Sprintf("%dm", minutes)
 	}
-	
+
 	return timeStr, "weekly"
 }
 
@@ -874,10 +932,10 @@ func calculateCompactionPercentage(contextTokens int) int {
 	if contextTokens == 0 {
 		return 0
 	}
-	
+
 	// Most models start compaction around 90% of context limit
 	compactionThreshold := int(float64(OpusContextLimit) * 0.9) // 180K tokens for 200K limit
-	
+
 	if contextTokens >= compactionThreshold {
 		// We're in the danger zone - show percentage from threshold to limit
 		remaining := OpusContextLimit - contextTokens
@@ -888,7 +946,7 @@ func calculateCompactionPercentage(contextTokens int) int {
 		}
 		return percentage
 	}
-	
+
 	// Show percentage to threshold
 	return int((float64(contextTokens) / float64(compactionThreshold)) * 100)
 }
@@ -899,17 +957,17 @@ func getGitInfo(dir string) string {
 	if gitDir == "" {
 		return ""
 	}
-	
+
 	// Get branch name
 	headFile := filepath.Join(gitDir, "HEAD")
 	content, err := os.ReadFile(headFile)
 	if err != nil {
 		return ""
 	}
-	
+
 	headContent := strings.TrimSpace(string(content))
 	var branch string
-	
+
 	if strings.HasPrefix(headContent, "ref: refs/heads/") {
 		branch = strings.TrimPrefix(headContent, "ref: refs/heads/")
 	} else if len(headContent) >= 7 {
@@ -917,13 +975,13 @@ func getGitInfo(dir string) string {
 	} else {
 		return ""
 	}
-	
+
 	// Check for changes (simplified)
 	changes := getGitChanges(dir)
 	if changes > 0 {
 		return fmt.Sprintf("%s %s±%d", GitBranch, branch, changes)
 	}
-	
+
 	return fmt.Sprintf("%s %s", GitBranch, branch)
 }
 
@@ -937,7 +995,7 @@ func findGitDir(startDir string) string {
 				return gitDir
 			}
 		}
-		
+
 		parent := filepath.Dir(dir)
 		if parent == dir || parent == "/" {
 			break
@@ -955,7 +1013,7 @@ func getGitChanges(dir string) int {
 	if err != nil {
 		return 0
 	}
-	
+
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	if len(lines) == 1 && lines[0] == "" {
 		return 0
@@ -966,11 +1024,11 @@ func getGitChanges(dir string) int {
 // Existing helper functions (kept from original implementation)
 func getCCUsageData() CCUsageData {
 	var data CCUsageData
-	
+
 	if _, err := exec.LookPath("ccusage"); err != nil {
 		return data
 	}
-	
+
 	// Try blocks command first for current 5-hour session data
 	cmd := exec.Command("ccusage", "blocks", "--json")
 	if output, err := cmd.Output(); err == nil {
@@ -981,7 +1039,7 @@ func getCCUsageData() CCUsageData {
 		data.OutputTokens = extractTokenCount(outputStr, `"outputTokens"\s*:\s*(\d+)`)
 		data.Messages = extractTokenCount(outputStr, `"messages"\s*:\s*(\d+)|"messageCount"\s*:\s*(\d+)`)
 	}
-	
+
 	// Get session-specific data if we have a session ID
 	sessionID := getCurrentSessionID()
 	if sessionID != "" {
@@ -1004,7 +1062,7 @@ func getCCUsageData() CCUsageData {
 			}
 		}
 	}
-	
+
 	// Get overall daily stats for daily totals
 	cmd = exec.Command("ccusage", "stats", "--json")
 	output, err := cmd.Output()
@@ -1016,11 +1074,11 @@ func getCCUsageData() CCUsageData {
 			return data
 		}
 	}
-	
+
 	outputStr := string(output)
 	data.DailyTokens = extractTokenCount(outputStr, `"totalTokens"\s*:\s*(\d+)|total.*tokens.*:\s*(\d+)`)
 	data.WeeklyTokens = extractTokenCount(outputStr, `"weeklyTokens"\s*:\s*(\d+)|weekly.*tokens.*:\s*(\d+)`)
-	
+
 	// If we still don't have session data, try to extract from general stats
 	if data.SessionTokens == 0 {
 		data.SessionTokens = extractTokenCount(outputStr, `"sessionTokens"\s*:\s*(\d+)|session.*tokens.*:\s*(\d+)`)
@@ -1034,19 +1092,19 @@ func getCCUsageData() CCUsageData {
 	if data.Messages == 0 {
 		data.Messages = extractTokenCount(outputStr, `"messages"\s*:\s*(\d+)|message.*count.*:\s*(\d+)`)
 	}
-	
+
 	return data
 }
 
 // getCurrentSessionID attempts to get the current Claude Code session ID
 func getCurrentSessionID() string {
 	// Try multiple methods to get session ID
-	
+
 	// Method 1: Check environment variable
 	if sessionID := os.Getenv("CLAUDE_SESSION_ID"); sessionID != "" {
 		return sessionID
 	}
-	
+
 	// Method 2: Check for session file in ~/.claude/
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
@@ -1055,12 +1113,12 @@ func getCurrentSessionID() string {
 			return strings.TrimSpace(string(content))
 		}
 	}
-	
+
 	// Method 3: Try to extract from Claude Code process info
 	if sessionID := extractSessionFromProcess(); sessionID != "" {
 		return sessionID
 	}
-	
+
 	return ""
 }
 
@@ -1071,7 +1129,7 @@ func extractSessionFromProcess() string {
 	if err != nil {
 		return ""
 	}
-	
+
 	lines := strings.Split(string(output), "\n")
 	for _, line := range lines {
 		if strings.Contains(line, "claude") && strings.Contains(line, "session") {
@@ -1082,29 +1140,29 @@ func extractSessionFromProcess() string {
 			}
 		}
 	}
-	
+
 	return ""
 }
 
 func getCalculatedUsage() CalculatedUsage {
 	var usage CalculatedUsage
-	
+
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return usage
 	}
-	
+
 	scriptPath := filepath.Join(homeDir, ".claude", "calculate-usage.sh")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
 		return usage
 	}
-	
+
 	cmd := exec.Command(scriptPath)
 	output, err := cmd.Output()
 	if err != nil {
 		return usage
 	}
-	
+
 	parts := strings.Fields(string(output))
 	if len(parts) >= 5 {
 		if val, err := strconv.Atoi(parts[0]); err == nil {
@@ -1133,7 +1191,7 @@ func getCalculatedUsage() CalculatedUsage {
 			usage.Messages = val
 		}
 	}
-	
+
 	return usage
 }
 
@@ -1194,22 +1252,22 @@ func getContextCharacters(input StatusLineInput) int {
 func calculateTimeToReset() (string, string) {
 	// Claude uses 5-hour rolling windows, not fixed daily resets
 	// The window starts with your first prompt and resets 5 hours later
-	
+
 	// Try to get actual session start time from ccusage or estimate
 	sessionStartTime := getSessionStartTime()
 	now := time.Now()
-	
+
 	if !sessionStartTime.IsZero() {
 		// Calculate time since session started
 		elapsed := now.Sub(sessionStartTime)
 		fiveHours := 5 * time.Hour
-		
+
 		if elapsed < fiveHours {
 			// Still in current 5-hour window
 			remaining := fiveHours - elapsed
 			hours := int(remaining.Hours())
 			minutes := int(remaining.Minutes()) % 60
-			
+
 			var timeStr string
 			if hours > 0 {
 				timeStr = fmt.Sprintf("%dh %dm", hours, minutes)
@@ -1222,25 +1280,25 @@ func calculateTimeToReset() (string, string) {
 			return "0m", "5hr"
 		}
 	}
-	
+
 	// Fallback: estimate based on daily reset (if no session data available)
 	currentHour := now.Hour()
 	currentMin := now.Minute()
 	currentSec := now.Second()
-	
+
 	secondsSinceMidnight := currentHour*3600 + currentMin*60 + currentSec
 	secondsToDailyReset := 86400 - secondsSinceMidnight
-	
+
 	hoursToReset := secondsToDailyReset / 3600
 	minutesToReset := (secondsToDailyReset % 3600) / 60
-	
+
 	var timeStr string
 	if hoursToReset > 0 {
 		timeStr = fmt.Sprintf("%dh %dm", hoursToReset, minutesToReset)
 	} else {
 		timeStr = fmt.Sprintf("%dm", minutesToReset)
 	}
-	
+
 	return timeStr, "daily"
 }
 
@@ -1257,7 +1315,7 @@ func getSessionStartTime() time.Time {
 			}
 		}
 	}
-	
+
 	// Fallback: check for session start time file
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
@@ -1268,7 +1326,7 @@ func getSessionStartTime() time.Time {
 			}
 		}
 	}
-	
+
 	return time.Time{} // Zero time if no session data found
 }
 
@@ -1293,11 +1351,11 @@ func getModelDisplay(model ModelInfo) string {
 	if modelStr == "" {
 		modelStr = model.ID
 	}
-	
+
 	if strings.Contains(strings.ToLower(modelStr), "sonnet") || strings.Contains(modelStr, "3.5") {
 		return "opus"
 	}
-	
+
 	return strings.ToLower(modelStr)
 }
 
@@ -1333,7 +1391,7 @@ func formatWorkspacePath(path string) string {
 	if err != nil {
 		return path
 	}
-	
+
 	if strings.HasPrefix(path, homeDir) {
 		return "~" + path[len(homeDir):]
 	}
