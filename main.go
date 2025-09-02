@@ -478,11 +478,26 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	contextTokens := getContextTokens(input)
 	contextChars := getContextCharacters(input)
 
+	// Check if we're in a new 5hr window - if so, reset session counters
+	sessionStartTime := getSessionStartTime()
+	isNewSession := false
+	if !sessionStartTime.IsZero() {
+		elapsed := time.Since(sessionStartTime)
+		if elapsed >= 5*time.Hour {
+			isNewSession = true
+		}
+	}
+
 	// Calculate actual token usage (prefer calculated data, then ccusage, then JSON)
 	var dailyTokensUsed int
 	var sessionInputTokens, sessionOutputTokens int
 
-	if calculatedUsage.DailyTokens > 0 {
+	if isNewSession {
+		// New 5hr session - use current request tokens as starting point
+		dailyTokensUsed = inputTokens + outputTokens
+		sessionInputTokens = inputTokens
+		sessionOutputTokens = outputTokens
+	} else if calculatedUsage.DailyTokens > 0 {
 		dailyTokensUsed = calculatedUsage.DailyTokens
 		sessionInputTokens = calculatedUsage.InputTokens
 		sessionOutputTokens = calculatedUsage.OutputTokens
@@ -1054,15 +1069,15 @@ func getCCUsageData() CCUsageData {
 		return data
 	}
 
-	// Try blocks command first for current 5-hour session data
-	cmd := exec.Command("ccusage", "blocks", "--json")
+	// Get current active 5-hour block data (most accurate for rate limits)  
+	cmd := exec.Command("ccusage", "blocks", "--active", "--json")
 	if output, err := cmd.Output(); err == nil {
 		outputStr := string(output)
-		// Parse current block data (most recent/active block)
-		data.SessionTokens = extractTokenCount(outputStr, `"tokens"\s*:\s*(\d+)|"totalTokens"\s*:\s*(\d+)`)
+		// Parse current active block data only
+		data.SessionTokens = extractTokenCount(outputStr, `"totalTokens"\s*:\s*(\d+)`)
 		data.InputTokens = extractTokenCount(outputStr, `"inputTokens"\s*:\s*(\d+)`)
 		data.OutputTokens = extractTokenCount(outputStr, `"outputTokens"\s*:\s*(\d+)`)
-		data.Messages = extractTokenCount(outputStr, `"messages"\s*:\s*(\d+)|"messageCount"\s*:\s*(\d+)`)
+		data.Messages = extractTokenCount(outputStr, `"entries"\s*:\s*(\d+)`)
 	}
 
 	// Get session-specific data if we have a session ID
@@ -1301,8 +1316,10 @@ func calculateTimeToReset() (string, string) {
 			}
 			return timeStr, "5hr"
 		} else {
-			// Session has expired, next message starts new window
-			return "0m", "5hr"
+			// Session has expired - we're in a new window, reset tracking
+			// Update session start time to now for the new window
+			updateSessionStartTime(now)
+			return "5h 0m", "5hr"
 		}
 	}
 
@@ -1329,9 +1346,9 @@ func calculateTimeToReset() (string, string) {
 
 // getSessionStartTime tries to determine when the current 5-hour session started
 func getSessionStartTime() time.Time {
-	// Try to get session start from ccusage blocks command
+	// Try to get session start from ccusage active blocks command
 	if _, err := exec.LookPath("ccusage"); err == nil {
-		cmd := exec.Command("ccusage", "blocks", "--json")
+		cmd := exec.Command("ccusage", "blocks", "--active", "--json")
 		if output, err := cmd.Output(); err == nil {
 			// Parse JSON to find current active block start time
 			outputStr := string(output)
@@ -1355,17 +1372,26 @@ func getSessionStartTime() time.Time {
 	return time.Time{} // Zero time if no session data found
 }
 
+// updateSessionStartTime updates the session start time file for new 5hr window
+func updateSessionStartTime(startTime time.Time) {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
+	
+	sessionStartFile := filepath.Join(homeDir, ".claude", "session_start")
+	timeStr := startTime.Format(time.RFC3339)
+	os.WriteFile(sessionStartFile, []byte(timeStr), 0644)
+}
+
 // extractSessionStartFromCCUsage parses ccusage blocks output to find active session start
 func extractSessionStartFromCCUsage(jsonOutput string) time.Time {
-	// Look for patterns like "start_time": "2024-01-01T10:00:00Z" in current block
-	re := regexp.MustCompile(`"start_time"\s*:\s*"([^"]+)"`)
+	// Look for startTime in active block: "startTime": "2025-09-02T09:00:00.000Z"
+	re := regexp.MustCompile(`"startTime"\s*:\s*"([^"]+)"`)
 	matches := re.FindStringSubmatch(jsonOutput)
 	if len(matches) > 1 {
 		if startTime, err := time.Parse(time.RFC3339, matches[1]); err == nil {
-			// Check if this session is still active (within 5 hours)
-			if time.Since(startTime) < 5*time.Hour {
-				return startTime
-			}
+			return startTime
 		}
 	}
 	return time.Time{}
