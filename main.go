@@ -525,6 +525,9 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	// Usage percentage widget (daily)
 	usagePercent := calculateUsagePercentage(dailyTokensUsed, contextTokens, contextChars)
 	remainingPercent := 100 - usagePercent
+	if remainingPercent < 0 {
+		remainingPercent = 0 // Don't show negative percentages
+	}
 	s.addWidget("percent", fmt.Sprintf("%d%%", remainingPercent),
 		s.Theme.PercentColor(remainingPercent), s.Theme.PercentBg(remainingPercent))
 
@@ -717,8 +720,18 @@ func calculateUsagePercentage(dailyTokens, contextTokens, contextChars int) int 
 		estimatedTokens := contextChars / 4
 		contextPercentage = int((estimatedTokens * 100) / OpusContextLimit)
 	}
+	
+	// Cap context percentage at 100%
+	if contextPercentage > 100 {
+		contextPercentage = 100
+	}
 
 	dailyPercentage := int((dailyTokens * 100) / OpusDailyLimit)
+	
+	// Cap daily percentage at 100%
+	if dailyPercentage > 100 {
+		dailyPercentage = 100
+	}
 
 	if contextPercentage > dailyPercentage {
 		return contextPercentage
@@ -810,7 +823,11 @@ func calculateContextEfficiency(contextTokens int) float64 {
 	if contextTokens == 0 {
 		return 0.0
 	}
-	return (float64(contextTokens) / float64(OpusContextLimit)) * 100
+	efficiency := (float64(contextTokens) / float64(OpusContextLimit)) * 100
+	if efficiency > 100.0 {
+		efficiency = 100.0 // Cap at 100%
+	}
+	return efficiency
 }
 
 // getLatencyData retrieves request latency information
@@ -869,7 +886,11 @@ func calculateWeeklyUsagePercentage(weeklyTokens int) int {
 	if weeklyTokens == 0 {
 		return 0
 	}
-	return int((float64(weeklyTokens) / float64(OpusWeeklyLimit)) * 100)
+	percentage := int((float64(weeklyTokens) / float64(OpusWeeklyLimit)) * 100)
+	if percentage > 100 {
+		percentage = 100 // Cap at 100%
+	}
+	return percentage
 }
 
 // calculateDailyUsagePercentage calculates percentage of daily limit used
@@ -877,7 +898,11 @@ func calculateDailyUsagePercentage(dailyTokens int) int {
 	if dailyTokens == 0 {
 		return 0
 	}
-	return int((float64(dailyTokens) / float64(OpusDailyLimit)) * 100)
+	percentage := int((float64(dailyTokens) / float64(OpusDailyLimit)) * 100)
+	if percentage > 100 {
+		percentage = 100 // Cap at 100%
+	}
+	return percentage
 }
 
 // getWeeklyTokensUsed gets weekly token usage with fallback logic
