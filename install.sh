@@ -34,43 +34,35 @@ check_permissions() {
     fi
 }
 
-# Install Go if not present
-install_go() {
-    if ! command -v go &> /dev/null; then
-        log_warn "Go is not installed. Installing Go..."
-        
-        # Detect architecture
-        ARCH=$(uname -m)
-        case $ARCH in
-            x86_64) GOARCH="amd64" ;;
-            aarch64|arm64) GOARCH="arm64" ;;
-            armv6l) GOARCH="armv6l" ;;
-            armv7l) GOARCH="armv7l" ;;
-            *) log_error "Unsupported architecture: $ARCH"; exit 1 ;;
-        esac
-        
-        # Download and install Go
-        GO_VERSION="1.21.5"
-        GO_TAR="go${GO_VERSION}.linux-${GOARCH}.tar.gz"
-        
-        log_info "Downloading Go ${GO_VERSION} for ${GOARCH}..."
-        cd /tmp
-        curl -LO "https://golang.org/dl/${GO_TAR}"
-        
-        log_info "Installing Go to /usr/local/go..."
-        sudo rm -rf /usr/local/go
-        sudo tar -C /usr/local -xzf "${GO_TAR}"
-        
-        # Add Go to PATH
-        if ! grep -q "/usr/local/go/bin" ~/.bashrc; then
-            echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc
-        fi
-        
-        export PATH=$PATH:/usr/local/go/bin
-        log_success "Go installed successfully"
+# Detect system architecture and OS
+detect_system() {
+    # Detect OS
+    case "$(uname -s)" in
+        Linux*) OS="linux" ;;
+        Darwin*) OS="darwin" ;;
+        CYGWIN*|MINGW32*|MSYS*|MINGW*) OS="windows" ;;
+        *) log_error "Unsupported operating system: $(uname -s)"; exit 1 ;;
+    esac
+    
+    # Detect architecture
+    case "$(uname -m)" in
+        x86_64|amd64) ARCH="amd64" ;;
+        aarch64|arm64) ARCH="arm64" ;;
+        armv6l) ARCH="armv6l" ;;
+        armv7l) ARCH="armv7l" ;;
+        *) log_error "Unsupported architecture: $(uname -m)"; exit 1 ;;
+    esac
+    
+    # Set file extension
+    if [ "$OS" = "windows" ]; then
+        EXT=".exe"
+        ARCHIVE_EXT="zip"
     else
-        log_success "Go is already installed: $(go version)"
+        EXT=""
+        ARCHIVE_EXT="tar.gz"
     fi
+    
+    log_info "Detected system: $OS/$ARCH"
 }
 
 # Install Node.js and npm if not present (needed for ccusage)
@@ -102,41 +94,75 @@ install_ccusage() {
     fi
 }
 
-# Build ccstatus binary
-build_ccstatus() {
-    log_info "Building ccstatus binary..."
+# Get latest release version from GitHub
+get_latest_version() {
+    log_info "Fetching latest release version..."
     
-    if [[ ! -f "main.go" ]]; then
-        log_error "main.go not found. Please run this script from the ccstatus directory."
+    LATEST_VERSION=$(curl -s https://api.github.com/repos/mrdavidaylward/ccstatus/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+    
+    if [ -z "$LATEST_VERSION" ]; then
+        log_error "Failed to fetch latest version from GitHub"
         exit 1
     fi
     
-    # Initialize Go module if not exists
-    if [[ ! -f "go.mod" ]]; then
-        log_info "Initializing Go module..."
-        go mod init ccstatus
-    fi
+    log_success "Latest version: $LATEST_VERSION"
+}
+
+# Download and extract ccstatus binary
+download_ccstatus() {
+    log_info "Downloading ccstatus $LATEST_VERSION for $OS/$ARCH..."
     
-    # Build the binary
-    go build -ldflags "-s -w" -o ccstatus main.go
+    # Construct download URL
+    FILENAME="ccstatus_${LATEST_VERSION}_${OS}_${ARCH}.${ARCHIVE_EXT}"
+    DOWNLOAD_URL="https://github.com/mrdavidaylward/ccstatus/releases/download/$LATEST_VERSION/$FILENAME"
     
-    if [[ ! -f "ccstatus" ]]; then
-        log_error "Failed to build ccstatus binary"
+    # Create temp directory
+    TEMP_DIR=$(mktemp -d)
+    cd "$TEMP_DIR"
+    
+    # Download the archive
+    if ! curl -L -o "$FILENAME" "$DOWNLOAD_URL"; then
+        log_error "Failed to download $FILENAME"
+        log_error "URL: $DOWNLOAD_URL"
         exit 1
     fi
     
-    log_success "ccstatus binary built successfully"
+    log_success "Downloaded $FILENAME"
+    
+    # Extract the archive
+    log_info "Extracting archive..."
+    if [ "$ARCHIVE_EXT" = "zip" ]; then
+        unzip -q "$FILENAME"
+    else
+        tar -xzf "$FILENAME"
+    fi
+    
+    # Find the extracted directory
+    EXTRACT_DIR="ccstatus_${OS}_${ARCH}"
+    if [ ! -d "$EXTRACT_DIR" ]; then
+        log_error "Extracted directory not found: $EXTRACT_DIR"
+        exit 1
+    fi
+    
+    # Verify binary exists
+    BINARY_PATH="$EXTRACT_DIR/ccstatus$EXT"
+    if [ ! -f "$BINARY_PATH" ]; then
+        log_error "ccstatus binary not found in extracted archive"
+        exit 1
+    fi
+    
+    # Make binary executable
+    chmod +x "$BINARY_PATH"
+    
+    log_success "Successfully extracted ccstatus binary"
 }
 
 # Install ccstatus to system PATH
 install_binary() {
     log_info "Installing ccstatus to /usr/local/bin..."
     
-    # Make binary executable
-    chmod +x ccstatus
-    
-    # Copy to system location
-    sudo cp ccstatus /usr/local/bin/ccstatus
+    # Copy binary to system location
+    sudo cp "$BINARY_PATH" /usr/local/bin/ccstatus
     
     # Verify installation
     if command -v ccstatus &> /dev/null; then
@@ -145,6 +171,11 @@ install_binary() {
         log_error "Failed to install ccstatus binary"
         exit 1
     fi
+    
+    # Clean up temp directory
+    cd /
+    rm -rf "$TEMP_DIR"
+    log_info "Cleaned up temporary files"
 }
 
 # Create Claude config directory
@@ -241,7 +272,7 @@ test_installation() {
     log_info "Testing ccstatus installation..."
     
     # Test with sample data
-    TEST_JSON='{"model":{"display_name":"Sonnet 4"},"workspace":{"current_dir":"'"$(pwd)"'"},"inputTokens":1500,"outputTokens":750,"contextUsage":{"tokens":25000}}'
+    TEST_JSON='{"model":{"display_name":"Sonnet 4"},"workspace":{"current_dir":"'"$HOME"'"},"inputTokens":1500,"outputTokens":750,"contextUsage":{"tokens":25000}}'
     
     if echo "$TEST_JSON" | ccstatus > /dev/null 2>&1; then
         log_success "ccstatus is working correctly!"
@@ -262,15 +293,18 @@ main() {
     # Check permissions
     check_permissions
     
+    # Detect system
+    detect_system
+    
     # Install dependencies
     log_info "Installing dependencies..."
-    install_go
     install_nodejs
     install_ccusage
     
-    # Build and install ccstatus
-    log_info "Building and installing ccstatus..."
-    build_ccstatus
+    # Download and install ccstatus
+    log_info "Downloading and installing ccstatus..."
+    get_latest_version
+    download_ccstatus
     install_binary
     
     # Setup Claude configuration
@@ -286,7 +320,7 @@ main() {
     log_success "Installation completed successfully!"
     echo
     log_info "What's installed:"
-    echo "  • ccstatus binary -> /usr/local/bin/ccstatus"
+    echo "  • ccstatus $LATEST_VERSION -> /usr/local/bin/ccstatus"
     echo "  • ccusage CLI tool -> $(which ccusage 2>/dev/null || echo 'npm global')"
     echo "  • Claude config -> ~/.claude/settings.json"
     echo "  • Tracking files -> ~/.claude/"

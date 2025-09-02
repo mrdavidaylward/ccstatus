@@ -1,6 +1,6 @@
 # CCStatus - Enhanced Claude Code Status Line
 
-A powerful Go-based status line for Claude Code with Powerline styling, multiple themes, and advanced metrics inspired by ccstatusline and ccusage.
+A powerful Go-based status line for Claude Code with Powerline styling, multiple themes, and advanced metrics.
 
 ## Features
 
@@ -15,33 +15,55 @@ A powerful Go-based status line for Claude Code with Powerline styling, multiple
 - Git branch symbols (``) and icons
 
 📊 **Advanced Metrics**
-- Session and daily token usage with k/M formatting
-- Claude rate limit tracking (5hr blocks)
-- Remaining usage percentage with color coding
-- Block timer showing elapsed time in current 5hr window
+- 💰 **Cost tracking** - Session costs based on token usage and model pricing
+- 💬 **Message count** - Current messages used in 5-hour rate limit window
+- 📊 **Context efficiency** - Context window utilization percentage
+- 🗜️ **Compaction warning** - Percentage until message compaction
+- 📅 **Weekly vs Daily limits** - Smart tracking of both Claude limit types
+- ⏱ **5-hour rolling windows** - Accurate reset timers based on actual Claude limits
 - Git branch with change count (`master±3`)
 
 🔧 **Smart Integration**
-- `ccusage` CLI tool support for accurate metrics
-- Custom calculation script integration
+- Enhanced `ccusage` CLI tool integration with session tracking
+- 5-hour rolling window calculations (not daily estimates)
 - Context window usage tracking (200K limit)
-- Multiple token data source fallbacks
+- Multiple data source fallbacks for reliability
 
-## Installation
+## Quick Install
 
-1. Build the binary:
 ```bash
-go build -o ccstatus main.go
-chmod +x ccstatus
+curl -fsSL https://raw.githubusercontent.com/mrdavidaylward/ccstatus/main/install.sh | bash
 ```
 
-2. Configure Claude Code:
+## Manual Installation
+
+### Option 1: Download Pre-built Binary
+
+Download the latest release for your platform:
+- [Linux (x64)](https://github.com/mrdavidaylward/ccstatus/releases/latest/download/ccstatus_linux_amd64.tar.gz)
+- [Linux (ARM64)](https://github.com/mrdavidaylward/ccstatus/releases/latest/download/ccstatus_linux_arm64.tar.gz)
+- [macOS (Intel)](https://github.com/mrdavidaylward/ccstatus/releases/latest/download/ccstatus_darwin_amd64.tar.gz)
+- [macOS (Apple Silicon)](https://github.com/mrdavidaylward/ccstatus/releases/latest/download/ccstatus_darwin_arm64.tar.gz)
+- [Windows (x64)](https://github.com/mrdavidaylward/ccstatus/releases/latest/download/ccstatus_windows_amd64.zip)
+
+### Option 2: Build from Source
+
 ```bash
-# Update ~/.claude/settings.json
+git clone https://github.com/mrdavidaylward/ccstatus.git
+cd ccstatus
+go build -o ccstatus main.go
+./install.sh
+```
+
+### Configure Claude Code
+
+The install script automatically configures Claude Code, but you can also do it manually:
+
+```json
 {
   "statusLine": {
     "type": "command", 
-    "command": "/path/to/ccstatus/ccstatus"
+    "command": "/usr/local/bin/ccstatus"
   }
 }
 ```
