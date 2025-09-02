@@ -97,7 +97,7 @@ jobs:
         ls -la $OUTPUT_NAME
     
     - name: Upload build artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ccstatus-${{ matrix.goos }}-${{ matrix.goarch }}
         path: ccstatus*
