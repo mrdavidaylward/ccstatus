@@ -1,0 +1,198 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+            ext: .exe
+          - goos: windows
+            goarch: arm64
+            ext: .exe
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+        echo "build_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+        echo "git_commit=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+    
+    - name: Build binary
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      run: |
+        # Build with version info
+        go build -ldflags "
+          -s -w
+          -X main.Version=${{ steps.version.outputs.version }}
+          -X main.BuildTime=${{ steps.version.outputs.build_time }}
+          -X main.GitCommit=${{ steps.version.outputs.git_commit }}
+        " -o ccstatus${{ matrix.ext }} main.go
+        
+        # Create release directory
+        mkdir -p release/ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}
+        cp ccstatus${{ matrix.ext }} release/ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/
+        
+        # Copy additional files
+        cp README.md release/ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/ || true
+        cp LICENSE release/ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/ || true
+        
+        # Create install script for Unix systems
+        if [ "${{ matrix.goos }}" != "windows" ]; then
+          cat > release/ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/install.sh << 'EOF'
+        #!/bin/bash
+        set -e
+        sudo cp ccstatus /usr/local/bin/ccstatus
+        sudo chmod +x /usr/local/bin/ccstatus
+        echo "ccstatus installed to /usr/local/bin/ccstatus"
+        echo "Update your ~/.claude/settings.json with:"
+        echo '{
+          "statusLine": {
+            "type": "command",
+            "command": "/usr/local/bin/ccstatus"
+          }
+        }'
+        EOF
+          chmod +x release/ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/install.sh
+        fi
+        
+        # Create archive
+        cd release
+        if [ "${{ matrix.goos }}" == "windows" ]; then
+          zip -r ccstatus_${{ steps.version.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.zip ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/
+        else
+          tar -czf ccstatus_${{ steps.version.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.tar.gz ccstatus_${{ matrix.goos }}_${{ matrix.goarch }}/
+        fi
+        cd ..
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ccstatus-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: release/ccstatus_${{ steps.version.outputs.version }}_${{ matrix.goos }}_${{ matrix.goarch }}.*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Get version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: ./artifacts
+    
+    - name: Prepare release assets
+      run: |
+        mkdir -p release-assets
+        find ./artifacts -name "*.tar.gz" -o -name "*.zip" | while read file; do
+          cp "$file" release-assets/
+        done
+        ls -la release-assets/
+    
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Get previous tag
+        PREV_TAG=$(git tag --sort=-version:refname | head -2 | tail -1 2>/dev/null || echo "")
+        
+        # Generate changelog
+        if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "${{ steps.version.outputs.version }}" ]; then
+          echo "## What's Changed" > changelog.md
+          git log --pretty=format:"- %s" ${PREV_TAG}..${{ steps.version.outputs.version }} >> changelog.md 2>/dev/null || echo "- Initial release" > changelog.md
+        else
+          echo "## What's Changed" > changelog.md
+          echo "- Initial release" >> changelog.md
+        fi
+        
+        echo "## Download" >> changelog.md
+        echo "" >> changelog.md
+        echo "Choose the appropriate binary for your platform:" >> changelog.md
+        echo "" >> changelog.md
+        echo "- **Linux (x64)**: \`ccstatus_${{ steps.version.outputs.version }}_linux_amd64.tar.gz\`" >> changelog.md
+        echo "- **Linux (ARM64)**: \`ccstatus_${{ steps.version.outputs.version }}_linux_arm64.tar.gz\`" >> changelog.md
+        echo "- **macOS (Intel)**: \`ccstatus_${{ steps.version.outputs.version }}_darwin_amd64.tar.gz\`" >> changelog.md
+        echo "- **macOS (Apple Silicon)**: \`ccstatus_${{ steps.version.outputs.version }}_darwin_arm64.tar.gz\`" >> changelog.md
+        echo "- **Windows (x64)**: \`ccstatus_${{ steps.version.outputs.version }}_windows_amd64.zip\`" >> changelog.md
+        echo "- **Windows (ARM64)**: \`ccstatus_${{ steps.version.outputs.version }}_windows_arm64.zip\`" >> changelog.md
+        echo "" >> changelog.md
+        echo "## Quick Install" >> changelog.md
+        echo "" >> changelog.md
+        echo "### Linux/macOS" >> changelog.md
+        echo "\`\`\`bash" >> changelog.md
+        echo "# Download and extract" >> changelog.md
+        echo "wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/ccstatus_${{ steps.version.outputs.version }}_linux_amd64.tar.gz" >> changelog.md
+        echo "tar -xzf ccstatus_${{ steps.version.outputs.version }}_linux_amd64.tar.gz" >> changelog.md
+        echo "cd ccstatus_linux_amd64" >> changelog.md
+        echo "" >> changelog.md
+        echo "# Install" >> changelog.md
+        echo "./install.sh" >> changelog.md
+        echo "\`\`\`" >> changelog.md
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.version }}
+        name: ${{ steps.version.outputs.version }}
+        body_path: changelog.md
+        files: release-assets/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Initialize Go module
+      run: |
+        if [ ! -f go.mod ]; then
+          go mod init ccstatus
+        fi
+        go mod tidy
+    
+    - name: Run go vet
+      run: go vet ./...
+    
+    - name: Run gofmt
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "Code is not formatted. Please run 'gofmt -s -w .'"
+          gofmt -s -l .
+          exit 1
+        fi
+    
+    - name: Build
+      run: go build -v ./...
+    
+    - name: Test basic functionality
+      run: |
+        # Build the binary
+        go build -o ccstatus main.go
+        
+        # Test with sample JSON
+        echo '{"model":{"display_name":"Sonnet 4"},"workspace":{"current_dir":"'$(pwd)'"},"inputTokens":1500,"outputTokens":750,"contextUsage":{"tokens":25000}}' | ./ccstatus
+    
+    - name: Test themes
+      run: |
+        # Test different themes
+        for theme in powerline minimal gruvbox; do
+          echo "Testing theme: $theme"
+          CCSTATUS_THEME=$theme echo '{"model":{"display_name":"Sonnet 4"},"workspace":{"current_dir":"'$(pwd)'"},"contextUsage":{"tokens":10000}}' | ./ccstatus
+        done
+
+  build-matrix:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+    
+    - name: Initialize Go module
+      run: |
+        if [ ! -f go.mod ]; then
+          go mod init ccstatus
+        fi
+        go mod tidy
+    
+    - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+      run: |
+        OUTPUT_NAME="ccstatus"
+        if [ "${{ matrix.goos }}" == "windows" ]; then
+          OUTPUT_NAME="ccstatus.exe"
+        fi
+        
+        go build -ldflags "-s -w" -o $OUTPUT_NAME main.go
+        
+        # Verify the binary was created
+        ls -la $OUTPUT_NAME
+    
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: ccstatus-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: ccstatus*
