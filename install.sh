@@ -84,12 +84,26 @@ install_nodejs() {
 install_ccusage() {
     if ! command -v ccusage &> /dev/null; then
         log_info "Installing ccusage CLI tool..."
-        sudo npm install -g ccusage
-        log_success "ccusage installed successfully"
+        # Use full path to npm or preserve PATH when using sudo
+        if command -v npm &> /dev/null; then
+            NPM_PATH=$(which npm)
+            sudo -E $NPM_PATH install -g ccusage || npm install -g ccusage
+        else
+            log_warn "npm not found in PATH, skipping ccusage installation"
+            return
+        fi
+        if command -v ccusage &> /dev/null; then
+            log_success "ccusage installed successfully"
+        else
+            log_warn "ccusage installation failed - ccstatus will work without it"
+        fi
     else
         log_info "ccusage is already installed: $(ccusage --version 2>/dev/null || echo 'version unknown')"
         log_info "Updating ccusage to latest version..."
-        sudo npm update -g ccusage
+        if command -v npm &> /dev/null; then
+            NPM_PATH=$(which npm)
+            sudo -E $NPM_PATH update -g ccusage || npm update -g ccusage
+        fi
         log_success "ccusage updated successfully"
     fi
 }
