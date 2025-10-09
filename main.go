@@ -14,14 +14,24 @@ import (
 	"time"
 )
 
-// Constants for Claude Max 5x Plan Limits ($100/month)
+// Constants for Claude Pro Plan Limits (2025)
 const (
-	OpusContextLimit = 200000  // 200K context window
-	OpusDailyLimit   = 430000  // Daily token estimate for Max 5x
-	OpusWeeklyLimit  = 3000000 // Weekly token estimate for Max 5x (7 days)
-	OpusMessageLimit = 225     // Messages per 5 hour window
-	OpusRateWindow   = 18000   // 5 hours in seconds (5 * 60 * 60)
-	SecondsInWeek    = 604800  // 7 days in seconds (7 * 24 * 60 * 60)
+	// Context window: Sonnet 4 now supports 1M tokens (standard 200K)
+	SonnetContextLimit   = 1000000 // 1M context window (beta with context-1m flag)
+	StandardContextLimit = 200000  // 200K standard context window
+
+	// Pro plan rolling rate limits (5-hour windows, resets every 5 hours)
+	// Approximately 45 messages per 5-hour window for typical conversations
+	MessagesPerWindow = 45    // Messages per 5 hour window
+	RateWindowSeconds = 18000 // 5 hours in seconds (5 * 60 * 60)
+
+	// Weekly limits (August 2025 update - resets every 7 days)
+	// Pro users get 40-80 hours of Sonnet 4 usage per week
+	WeeklyTokenEstimate = 5000000 // Conservative estimate for weekly tokens
+	SecondsInWeek       = 604800  // 7 days in seconds (7 * 24 * 60 * 60)
+
+	// Output token limits
+	MaxOutputTokens = 64000 // Max output tokens for Sonnet 4
 )
 
 // Claude pricing constants (per 1M tokens)
@@ -580,7 +590,7 @@ func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
 	// Message count widget
 	messageCount := getMessageCount(ccusageData, calculatedUsage)
 	if messageCount > 0 {
-		s.addWidget("messages", fmt.Sprintf("%s %d/%d", MessageIcon, messageCount, OpusMessageLimit),
+		s.addWidget("messages", fmt.Sprintf("%s %d/%d", MessageIcon, messageCount, MessagesPerWindow),
 			s.Theme.MessageColor, s.Theme.MessageBg)
 	}
 
@@ -730,28 +740,30 @@ func getBgToFgColor(bgColor string) string {
 func calculateUsagePercentage(dailyTokens, contextTokens, contextChars int) int {
 	contextPercentage := 0
 	if contextTokens > 0 {
-		contextPercentage = int((contextTokens * 100) / OpusContextLimit)
+		contextPercentage = int((contextTokens * 100) / StandardContextLimit)
 	} else if contextChars > 0 {
 		estimatedTokens := contextChars / 4
-		contextPercentage = int((estimatedTokens * 100) / OpusContextLimit)
+		contextPercentage = int((estimatedTokens * 100) / StandardContextLimit)
 	}
-	
+
 	// Cap context percentage at 100%
 	if contextPercentage > 100 {
 		contextPercentage = 100
 	}
 
-	dailyPercentage := int((dailyTokens * 100) / OpusDailyLimit)
-	
-	// Cap daily percentage at 100%
-	if dailyPercentage > 100 {
-		dailyPercentage = 100
+	// Weekly usage percentage (more restrictive than daily in 2025)
+	weeklyPercentage := int((dailyTokens * 100) / WeeklyTokenEstimate)
+
+	// Cap weekly percentage at 100%
+	if weeklyPercentage > 100 {
+		weeklyPercentage = 100
 	}
 
-	if contextPercentage > dailyPercentage {
+	// Return the most restrictive limit
+	if contextPercentage > weeklyPercentage {
 		return contextPercentage
 	}
-	return dailyPercentage
+	return weeklyPercentage
 }
 
 // getBlockTimerDisplay returns the block timer display
@@ -838,7 +850,7 @@ func calculateContextEfficiency(contextTokens int) float64 {
 	if contextTokens == 0 {
 		return 0.0
 	}
-	efficiency := (float64(contextTokens) / float64(OpusContextLimit)) * 100
+	efficiency := (float64(contextTokens) / float64(StandardContextLimit)) * 100
 	if efficiency > 100.0 {
 		efficiency = 100.0 // Cap at 100%
 	}
@@ -901,19 +913,21 @@ func calculateWeeklyUsagePercentage(weeklyTokens int) int {
 	if weeklyTokens == 0 {
 		return 0
 	}
-	percentage := int((float64(weeklyTokens) / float64(OpusWeeklyLimit)) * 100)
+	percentage := int((float64(weeklyTokens) / float64(WeeklyTokenEstimate)) * 100)
 	if percentage > 100 {
 		percentage = 100 // Cap at 100%
 	}
 	return percentage
 }
 
-// calculateDailyUsagePercentage calculates percentage of daily limit used
+// calculateDailyUsagePercentage calculates percentage of daily usage
 func calculateDailyUsagePercentage(dailyTokens int) int {
 	if dailyTokens == 0 {
 		return 0
 	}
-	percentage := int((float64(dailyTokens) / float64(OpusDailyLimit)) * 100)
+	// Estimate daily portion of weekly limit (1/7 of weekly)
+	dailyEstimate := WeeklyTokenEstimate / 7
+	percentage := int((float64(dailyTokens) / float64(dailyEstimate)) * 100)
 	if percentage > 100 {
 		percentage = 100 // Cap at 100%
 	}
@@ -974,12 +988,12 @@ func calculateCompactionPercentage(contextTokens int) int {
 	}
 
 	// Most models start compaction around 90% of context limit
-	compactionThreshold := int(float64(OpusContextLimit) * 0.9) // 180K tokens for 200K limit
+	compactionThreshold := int(float64(StandardContextLimit) * 0.9) // 180K tokens for 200K limit
 
 	if contextTokens >= compactionThreshold {
 		// We're in the danger zone - show percentage from threshold to limit
-		remaining := OpusContextLimit - contextTokens
-		dangerZone := OpusContextLimit - compactionThreshold
+		remaining := StandardContextLimit - contextTokens
+		dangerZone := StandardContextLimit - compactionThreshold
 		percentage := int((float64(dangerZone-remaining) / float64(dangerZone)) * 100)
 		if percentage > 100 {
 			return 100
@@ -1069,7 +1083,7 @@ func getCCUsageData() CCUsageData {
 		return data
 	}
 
-	// Get current active 5-hour block data (most accurate for rate limits)  
+	// Get current active 5-hour block data (most accurate for rate limits)
 	cmd := exec.Command("ccusage", "blocks", "--active", "--json")
 	if output, err := cmd.Output(); err == nil {
 		outputStr := string(output)
@@ -1378,7 +1392,7 @@ func updateSessionStartTime(startTime time.Time) {
 	if err != nil {
 		return
 	}
-	
+
 	sessionStartFile := filepath.Join(homeDir, ".claude", "session_start")
 	timeStr := startTime.Format(time.RFC3339)
 	os.WriteFile(sessionStartFile, []byte(timeStr), 0644)
@@ -1403,11 +1417,21 @@ func getModelDisplay(model ModelInfo) string {
 		modelStr = model.ID
 	}
 
-	if strings.Contains(strings.ToLower(modelStr), "sonnet") || strings.Contains(modelStr, "3.5") {
+	modelLower := strings.ToLower(modelStr)
+
+	// Detect model type from name
+	if strings.Contains(modelLower, "sonnet") {
+		return "sonnet"
+	}
+	if strings.Contains(modelLower, "opus") {
 		return "opus"
 	}
+	if strings.Contains(modelLower, "haiku") {
+		return "haiku"
+	}
 
-	return strings.ToLower(modelStr)
+	// Fallback to simplified name
+	return modelLower
 }
 
 func getUsername() string {

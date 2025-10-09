@@ -6,7 +6,7 @@ A powerful Go-based status line for Claude Code with Powerline styling, multiple
 
 🎨 **Multiple Themes**
 - `powerline` - Full Powerline theme with backgrounds and arrows
-- `minimal` - Clean theme with simple separators  
+- `minimal` - Clean theme with simple separators
 - `gruvbox` - Beautiful truecolor theme with warm colors
 
 ⚡ **Powerline Support**
@@ -14,19 +14,20 @@ A powerful Go-based status line for Claude Code with Powerline styling, multiple
 - Background colors for distinct segments
 - Git branch symbols (``) and icons
 
-📊 **Advanced Metrics**
+📊 **Advanced Metrics (2025 Claude Pro Limits)**
 - 💰 **Cost tracking** - Session costs based on token usage and model pricing
-- 💬 **Message count** - Current messages used in 5-hour rate limit window
-- 📊 **Context efficiency** - Context window utilization percentage
-- 🗜️ **Compaction warning** - Percentage until message compaction
-- 📅 **Weekly vs Daily limits** - Smart tracking of both Claude limit types
-- ⏱ **5-hour rolling windows** - Accurate reset timers based on actual Claude limits
+- 💬 **Message count** - Tracks ~45 messages per 5-hour rolling window
+- 📊 **Context efficiency** - Context window utilization (200K standard, 1M available)
+- 🗜️ **Compaction warning** - Percentage until message compaction threshold
+- 📅 **Weekly limits** - New August 2025 weekly rate limits (40-80 hours Sonnet 4)
+- ⏱ **5-hour rolling windows** - Accurate reset timers per Claude Pro rate limits
 - Git branch with change count (`master±3`)
 
 🔧 **Smart Integration**
 - Enhanced `ccusage` CLI tool integration with session tracking
-- 5-hour rolling window calculations (not daily estimates)
-- Context window usage tracking (200K limit)
+- 5-hour rolling window calculations aligned with Claude Pro limits
+- Context window usage tracking (200K standard / 1M extended)
+- Weekly limit tracking (resets every 7 days)
 - Multiple data source fallbacks for reliability
 
 ## Quick Install
@@ -83,13 +84,18 @@ echo '{"model":{"display_name":"Sonnet 4"},"workspace":{"current_dir":"'$(pwd)'"
 
 ### Widget Overview
 - **User@Host** - Username and hostname
-- **Path** - Current directory (truncated if long)  
+- **Path** - Current directory (truncated if long)
 - **Git** - Branch name with change count (`master±3`)
-- **Model** - Claude model (opus/sonnet)
-- **Usage %** - Remaining tokens (color-coded: red<10%, yellow<30%, green>30%)
-- **Tokens** - Daily usage count (🔤 172.1k)  
-- **Timer** - Block elapsed time (⏱ 2m)
-- **Reset** - Time until next rate limit reset
+- **Model** - Claude model (sonnet/opus/haiku)
+- **Usage %** - Remaining capacity (color-coded: red<10%, yellow<30%, green>30%)
+- **Weekly/Daily** - Shows most restrictive limit (weekly or daily usage %)
+- **Tokens** - Token usage count (🔤 172.1k)
+- **Cost** - Session cost estimate ($)
+- **Messages** - Message count vs 5-hour window limit (💬 23/45)
+- **Efficiency** - Context window utilization (📊 45.2%)
+- **Compaction** - Distance to compaction threshold (🗜️ 68%)
+- **Timer** - Time elapsed in current 5-hour block (⏱ 2h 15m)
+- **Reset** - Time until next rate limit reset (5hr or weekly)
 
 ### Color Coding
 - **Red**: Critical usage (>90% consumed)
@@ -102,6 +108,23 @@ For best display, install a Powerline-compatible font like:
 - Meslo LG S for Powerline  
 - Cascadia Code PL
 - Any Nerd Font
+
+## Claude Pro Plan Limits (2025)
+
+### Rate Limits
+- **Messages**: ~45 messages per 5-hour rolling window (varies by conversation length)
+- **Weekly**: 40-80 hours of Sonnet 4 usage per week (introduced August 2025)
+- **Context Window**: 200K tokens standard, 1M tokens available with beta flag
+- **Output**: Up to 64K output tokens for Sonnet 4
+
+### Reset Cycles
+- **5-hour windows**: Rolling window starting from first prompt, resets every 5 hours
+- **Weekly limits**: Reset every Monday at 00:00 UTC (7-day cycle)
+
+### Pricing (Per 1M Tokens)
+- **Sonnet 4**: $3 input / $15 output (≤200K), $6 input / $22.50 output (>200K)
+- **Opus 4**: $15 input / $75 output
+- **Haiku**: $0.25 input / $1.25 output
 
 ## Architecture
 
@@ -130,10 +153,11 @@ type Widget struct {
 ```
 
 ### Integration Points
-- **ccusage CLI**: Primary metrics source via `ccusage stats --json`
+- **ccusage CLI**: Primary metrics source via `ccusage blocks --active --json`
 - **calculate-usage.sh**: Fallback script in `~/.claude/`
-- **Claude JSON**: Input context from Claude Code
+- **Claude JSON**: Input context from Claude Code statusLine API
 - **Git commands**: Live repository status
+- **Session tracking**: 5-hour window and weekly limit tracking
 
 ## Contributing
 
