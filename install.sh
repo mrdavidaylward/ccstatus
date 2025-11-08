@@ -69,12 +69,47 @@ detect_system() {
 install_nodejs() {
     if ! command -v npm &> /dev/null; then
         log_warn "npm is not installed. Installing Node.js and npm..."
-        
-        # Use NodeSource repository for latest Node.js
-        curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-        sudo apt-get install -y nodejs
-        
-        log_success "Node.js and npm installed successfully"
+
+        # Detect package manager and install Node.js accordingly
+        if command -v apt-get &> /dev/null; then
+            # Debian/Ubuntu
+            log_info "Detected apt-get (Debian/Ubuntu)"
+            curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+        elif command -v yum &> /dev/null; then
+            # RHEL/CentOS/Fedora (older)
+            log_info "Detected yum (RHEL/CentOS)"
+            curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+            sudo yum install -y nodejs
+        elif command -v dnf &> /dev/null; then
+            # Fedora (newer)
+            log_info "Detected dnf (Fedora)"
+            curl -fsSL https://rpm.nodesource.com/setup_lts.x | sudo bash -
+            sudo dnf install -y nodejs
+        elif command -v pacman &> /dev/null; then
+            # Arch Linux
+            log_info "Detected pacman (Arch Linux)"
+            sudo pacman -Sy --noconfirm nodejs npm
+        elif command -v zypper &> /dev/null; then
+            # openSUSE
+            log_info "Detected zypper (openSUSE)"
+            sudo zypper install -y nodejs npm
+        elif command -v brew &> /dev/null; then
+            # macOS with Homebrew
+            log_info "Detected brew (macOS)"
+            brew install node
+        else
+            log_error "Could not detect package manager. Please install Node.js manually from https://nodejs.org/"
+            log_warn "ccstatus will continue installation, but ccusage integration will be unavailable"
+            return 1
+        fi
+
+        if command -v npm &> /dev/null; then
+            log_success "Node.js and npm installed successfully: $(npm --version)"
+        else
+            log_warn "npm installation may have failed"
+            return 1
+        fi
     else
         log_success "npm is already installed: $(npm --version)"
     fi

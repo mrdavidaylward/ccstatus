@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/exec"
 	"os/user"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -42,6 +44,37 @@ const (
 	HaikuOutputCost  = 1.25  // $1.25 per 1M output tokens
 	OpusInputCost    = 15.00 // $15.00 per 1M input tokens
 	OpusOutputCost   = 75.00 // $75.00 per 1M output tokens
+)
+
+// Version information (set by build flags)
+var (
+	Version   = "dev"
+	BuildTime = "unknown"
+	GitCommit = "unknown"
+)
+
+// Debug logging
+var debugMode = os.Getenv("CCSTATUS_DEBUG") == "1"
+
+func debugLog(format string, args ...interface{}) {
+	if debugMode {
+		log.Printf("[DEBUG] "+format, args...)
+	}
+}
+
+// Cache structures for performance optimization
+type cachedResult struct {
+	data      interface{}
+	timestamp time.Time
+}
+
+var (
+	ccusageCache    *cachedResult
+	ccusageCacheTTL = 2 * time.Second
+	ccusageCacheMux sync.RWMutex
+
+	regexCache    = make(map[string]*regexp.Regexp)
+	regexCacheMux sync.RWMutex
 )
 
 // Powerline symbols
@@ -477,8 +510,8 @@ func main() {
 
 // generatePowerlineStatusLine creates a powerline-style status line
 func (s *StatusLine) generatePowerlineStatusLine(input StatusLineInput) string {
-	// Collect data
-	ccusageData := getCCUsageData()
+	// Collect data (using cached version for performance)
+	ccusageData := getCCUsageDataCached()
 	calculatedUsage := getCalculatedUsage()
 
 	// Extract token usage from JSON input
@@ -711,7 +744,13 @@ func trueColorBg(r, g, b int) string {
 
 // getBgToFgColor converts background color code to foreground
 func getBgToFgColor(bgColor string) string {
-	// Simple mapping - in practice would need full color translation
+	// Handle truecolor codes (e.g., "\033[48;2;60;56;54m")
+	if strings.HasPrefix(bgColor, "\033[48;2;") {
+		// Convert background (48) to foreground (38)
+		return strings.Replace(bgColor, "\033[48;2;", "\033[38;2;", 1)
+	}
+
+	// Standard ANSI color mapping
 	switch bgColor {
 	case BgBlue:
 		return ColorBlue
@@ -951,11 +990,12 @@ func getWeeklyTokensUsed(ccusageData CCUsageData, calculatedUsage CalculatedUsag
 
 // calculateTimeToWeeklyReset calculates time until weekly limit resets
 func calculateTimeToWeeklyReset() (string, string) {
-	now := time.Now()
+	// Weekly resets happen every Monday at 00:00 UTC
+	now := time.Now().In(time.UTC)
 
-	// Weekly resets happen every Monday at 00:00 UTC (based on Claude's implementation)
-	// Find next Monday
-	daysUntilMonday := (7 - int(now.Weekday()) + 1) % 7
+	// Calculate days until next Monday
+	// Sunday = 0, Monday = 1, ..., Saturday = 6
+	daysUntilMonday := (8 - int(now.Weekday())) % 7
 	if daysUntilMonday == 0 {
 		daysUntilMonday = 7 // If today is Monday, next reset is next Monday
 	}
@@ -1061,6 +1101,17 @@ func findGitDir(startDir string) string {
 
 // getGitChanges gets count of git changes (simplified implementation)
 func getGitChanges(dir string) int {
+	// Validate and clean the directory path to prevent directory traversal
+	dir = filepath.Clean(dir)
+	if !filepath.IsAbs(dir) {
+		return 0
+	}
+
+	// Verify directory exists
+	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+		return 0
+	}
+
 	cmd := exec.Command("git", "status", "--porcelain")
 	cmd.Dir = dir
 	output, err := cmd.Output()
@@ -1076,10 +1127,33 @@ func getGitChanges(dir string) int {
 }
 
 // Existing helper functions (kept from original implementation)
+
+// getCCUsageDataCached returns cached CCUsageData if available and fresh
+func getCCUsageDataCached() CCUsageData {
+	ccusageCacheMux.RLock()
+	if ccusageCache != nil && time.Since(ccusageCache.timestamp) < ccusageCacheTTL {
+		data := ccusageCache.data.(CCUsageData)
+		ccusageCacheMux.RUnlock()
+		debugLog("Using cached ccusage data (age: %v)", time.Since(ccusageCache.timestamp))
+		return data
+	}
+	ccusageCacheMux.RUnlock()
+
+	debugLog("Cache miss or expired, fetching fresh ccusage data")
+	data := getCCUsageData()
+
+	ccusageCacheMux.Lock()
+	ccusageCache = &cachedResult{data: data, timestamp: time.Now()}
+	ccusageCacheMux.Unlock()
+
+	return data
+}
+
 func getCCUsageData() CCUsageData {
 	var data CCUsageData
 
 	if _, err := exec.LookPath("ccusage"); err != nil {
+		debugLog("ccusage command not found: %v", err)
 		return data
 	}
 
@@ -1092,6 +1166,9 @@ func getCCUsageData() CCUsageData {
 		data.InputTokens = extractTokenCount(outputStr, `"inputTokens"\s*:\s*(\d+)`)
 		data.OutputTokens = extractTokenCount(outputStr, `"outputTokens"\s*:\s*(\d+)`)
 		data.Messages = extractTokenCount(outputStr, `"entries"\s*:\s*(\d+)`)
+		debugLog("Fetched active block data: %d tokens, %d messages", data.SessionTokens, data.Messages)
+	} else {
+		debugLog("Failed to get active block data: %v", err)
 	}
 
 	// Get session-specific data if we have a session ID
@@ -1203,17 +1280,20 @@ func getCalculatedUsage() CalculatedUsage {
 
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
+		debugLog("Failed to get home directory: %v", err)
 		return usage
 	}
 
 	scriptPath := filepath.Join(homeDir, ".claude", "calculate-usage.sh")
 	if _, err := os.Stat(scriptPath); os.IsNotExist(err) {
+		debugLog("calculate-usage.sh not found at %s", scriptPath)
 		return usage
 	}
 
 	cmd := exec.Command(scriptPath)
 	output, err := cmd.Output()
 	if err != nil {
+		debugLog("Failed to execute calculate-usage.sh: %v", err)
 		return usage
 	}
 
@@ -1250,7 +1330,19 @@ func getCalculatedUsage() CalculatedUsage {
 }
 
 func extractTokenCount(text, pattern string) int {
-	re := regexp.MustCompile(pattern)
+	// Use cached regex compilation for performance
+	regexCacheMux.RLock()
+	re, exists := regexCache[pattern]
+	regexCacheMux.RUnlock()
+
+	if !exists {
+		regexCacheMux.Lock()
+		re = regexp.MustCompile(pattern)
+		regexCache[pattern] = re
+		regexCacheMux.Unlock()
+		debugLog("Compiled and cached regex pattern: %s", pattern)
+	}
+
 	matches := re.FindStringSubmatch(text)
 	for i := 1; i < len(matches); i++ {
 		if matches[i] != "" {
@@ -1387,15 +1479,27 @@ func getSessionStartTime() time.Time {
 }
 
 // updateSessionStartTime updates the session start time file for new 5hr window
+// Uses atomic write to prevent race conditions
 func updateSessionStartTime(startTime time.Time) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return
 	}
 
-	sessionStartFile := filepath.Join(homeDir, ".claude", "session_start")
+	claudeDir := filepath.Join(homeDir, ".claude")
+	sessionStartFile := filepath.Join(claudeDir, "session_start")
 	timeStr := startTime.Format(time.RFC3339)
-	os.WriteFile(sessionStartFile, []byte(timeStr), 0644)
+
+	// Ensure .claude directory exists
+	os.MkdirAll(claudeDir, 0755)
+
+	// Atomic write: write to temp file, then rename
+	tmpFile := sessionStartFile + ".tmp"
+	if err := os.WriteFile(tmpFile, []byte(timeStr), 0644); err != nil {
+		return
+	}
+	// Rename is atomic on Unix systems
+	os.Rename(tmpFile, sessionStartFile)
 }
 
 // extractSessionStartFromCCUsage parses ccusage blocks output to find active session start
